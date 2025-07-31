@@ -1,3 +1,10 @@
+
+## Copy created from ITCareerSwitch/Gazetteer ##
+
+## Creates unique repo which enables user to clone this project if required, without having to clone the full ITCareerSwitch repo ##
+
+
+
 Project1: Gazetteer
 
 This was a single page project using leaflet (https://leafletjs.com/) to create an interactive map to cover the page. The users location is used to display their country as the main page.
