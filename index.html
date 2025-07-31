@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">	
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Gazetteer</title>
+	
+	<meta name="description" content="AJAX/PHP/CURL/JSON example">
+
+	<!-- leaflet libraries - for map -->
+	<link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css"/>
+	<link rel='stylesheet' href='node_modules//leaflet-markercluster/dist/MarkerCluster.Default.css'>
+	<link rel='stylesheet' href='node_modules/leaflet-markercluster/dist/MarkerCluster.css'>
+	<link rel='stylesheet' href='node_modules/leaflet-easybutton/src/easy-button.css'> 
+	<link rel="stylesheet" href="css/leaflet.extra-markers.min.css">
+
+	<!-- favicon -->
+	<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+	<link rel="manifest" href="site.webmanifest">
+
+	<!-- normalize is for cross browser styling consistency -->
+	<link rel="stylesheet" href="node_modules/normalize/normalize.css">
+	<!-- Toastify is a lightweight, vanilla JS toast notification library. -->
+	<link rel='stylesheet' href='node_modules/toastify/src/toastify.css'>
+  
+	<!-- exterior font useage (fontawesome) and for icons-->
+	<link rel='stylesheet' href='fontawesome/all.css'>
+		
+	<!-- bootstrap -->
+	<link rel='stylesheet' href='bootstrap/bootstrap.min.css'>
+
+	<!-- numeral - format numbers -->
+	<script src="numeral.min.js"></script>
+
+	<!-- date formatting -->
+	<script type="text/javascript" src="date-en-GB.js"></script>
+
+	<link rel="stylesheet" href="libs/css/style.css"> 
+	
+</head>
+
+<body>
+
+	<span id="selectContainer" >  
+		<select id="countrySelect" class="form-select shadow-sm"> 
+			<option value="none">Select Country</option>
+		</select>
+		<br>
+		<h3 id = "subtext" class ="text-center"></h3>
+	</span>
+
+	<!-- leaflet: map holder -->
+	<div id="map"></div>
+  
+	<div id="infoModal" class="modal" data-bs-backdrop="false" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+		<div class="modal-content shadow">
+
+			<div class="modal-header bg-success bg-gradient text-white">
+			<h5 class="modal-title">Overview</h5>
+			<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+
+			<div class="modal-body">
+			<table class="table table-striped">
+				<!-- each row has 3 td parts, format:   icon - name - data  -->
+				<tr>  
+					<td class="text-center">
+					<i class="fa-solid fa-flag fa-xl text-success"></i>
+					</td>
+					<td>
+					Country Flag
+					</td>
+					<td id="countryFlag" class="text-end">
+						<img id="flagPic" src="https://flagsapi.com/BE/flat/64.png" alt="country flag">
+					</td>
+				</tr>
+				<tr>
+					<td class="text-center">
+					<i class="fa-solid fa-clock fa-xl text-success"></i>
+					</td>
+					<td>
+					Time Zone
+					</td>
+					<td id="timeZone" class="text-end">
+					value
+					</td>
+				</tr>
+				<tr>
+					<td class="text-center">
+					<i class="fa-solid fa-map-marker fa-xl text-success"></i>
+					</td>
+					<td>
+					Capital City
+					</td>
+					<td id="capital" class="text-end">
+					value
+					</td>
+				</tr>
+				<tr>
+					<td class="text-center">
+					<i class="fa-solid fa-users fa-xl text-success"></i>
+					</td>
+					<td>
+					Population
+					</td>
+					<td id="population" class="text-end">
+					value
+					</td>
+				</tr>
+				<tr>
+					<td class="text-center">
+					<i class="fa-solid fa-area-chart fa-xl text-success"></i>
+					</td>
+					<td>
+					Area
+					</td>
+					<td id ="countryArea" class="text-end">
+					value
+					</td>
+				</tr>
+				<tr>
+					<td class="text-center">
+					<i class="fa-solid fa-credit-card fa-xl text-success"></i>
+					</td>
+					<td>
+					Currency
+					</td>
+					<td id ="currency"class="text-end">
+					value
+					</td>
+				</tr>
+				<tr>
+					<td class="text-center">
+					<i class="fa-solid fa-language fa-xl text-success"></i>
+					</td>
+					<td>
+					languages
+					</td>
+					<td id= "languages" class="text-end">
+					value
+					</td>
+				</tr>
+				<tr>
+					<td class="text-center">
+					<i class="fa-solid fa-phone fa-xl text-success"></i>
+					</td>
+					<td>
+					Dialling Code
+					</td>
+					<td id="dialling" class="text-end">
+					value
+					</td>
+				</tr>
+			</table>
+			</div>
+
+			<div class="modal-footer">
+			<button type="button" class="btn btn-outline-success btn-sm" data-bs-dismiss="modal">Close</button>
+			</div>
+		
+		</div>
+		</div>
+	</div>  
+
+	<div id="weatherModal" class="modal fade" data-bs-backdrop="false" tabindex="-1" width = 'auto'>	
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+		<div class="modal-content shadow">
+			
+			<div class="modal-header bg-primary bg-gradient text-white">
+				<h5 class="modal-title" id="weatherTitle">Forecast</h5>
+				<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+		
+			<div class="modal-body">
+
+				<!-- the box containing 'today' -->
+				<div class="row border border-secondary-subtle mt-1 ms-1 me-1 mb-1">
+
+					<p class="fw-bold fs-4 mt-1 " id = "weatherDate">TODAY</p>
+					
+					<div class="col text-center mb-2">
+						<p id = "weatherDesc" class="fw-bold fs-5 mb-1">Description</p>
+						
+						<i  class="fas fa-wind fa-fw" style="color: #868B94;"></i> 
+						<span id = "weatherWind" class="fw-bold fs-6 mt-3 text-secondary">Wind</span> 
+						<br>
+						<i  class="fas fa-tint fa-fw" style="color: #868B94;"></i> 
+						<span id ="humidity" class="ms-1"> Humidity</span>
+					</div> 
+					<div class="col text-center">
+						<img id ="weatherImg" class="img-fluid mt-0" src="https://openweathermap.org/img/w/10d.png" width="100px" alt="weather pic">
+					</div>              
+					<div class="col text-center">
+						<p class="fw-bold fs-4 mb-0"><span id="todayMax">Max Temp</p>
+						<span id ="todayMin" class="fs-5 mt-0 text-secondary">Min Temp</span>
+					</div>              		
+						
+				</div>
+
+				<!-- the area containing next two days -->
+				<div class="row mt-3 ms-1 me-1 mb-2">
+
+					<div class="col text-center border border-secondary-subtle me-2 ">
+						<p id="tomorrowDate" class="fw-bold fs-6 mt-2">Tomorrow Date</p>
+						<div class="row ms-2 me-2">
+							<div class="col">
+								<p id="tomorrowMax" class="fw-bold fs-5">Tomorrow Max</p>
+							</div>
+							<div class="col text-left">
+								<p id="tomorrowMin" class="fw-bold fs-5 text-secondary">Tomorrow Min</p>
+							</div>
+						</div>
+						<div class="row">
+							<p id="tomorrowDesc" class="fs-6">Tomorrow Desc</p>
+						</div>
+					</div>
+
+					<div class="col text-center border border-secondary-subtle me-2 ">
+						<p id="nextDay" class="fw-bold fs-6 mt-2">Next Day</p>
+						<div class="row ms-2 me-2">
+							<div class="col text-center">
+								<p id="nextDayMax" class="fw-bold fs-5">Next Day Max</p>
+							</div>
+							<div class="col text-center">
+								<p id="nextDayMin" class="fw-bold fs-5 text-secondary">Next Day Min</p>
+							</div>
+						</div>
+						<div class="row">
+							<p id="nextDayDesc" class="fs-6">Next Day Desc</p>
+						</div>
+					</div>    
+								
+				</div>
+				
+				
+			</div>
+
+		</div>
+		</div>
+	</div>
+
+	<div id="currencyExchangeModal" class="modal" data-bs-backdrop="false" tabindex="-1">
+		<div class="modal-dialog modal-sm modal-dialog-centered modal-dialog-scrollable">
+
+		<div class="modal-content shadow">
+
+			<div class="modal-header bg-success bg-gradient text-white">
+			<h5  class="modal-title">Currency Exchange</h5>
+			<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+		
+			<div class="modal-body">
+				<body>
+					<form>
+						<p id = "exchange title" class =" fs-5 fw-bold text-center text-primary">Currency</p>	
+						<div class="f0w-bold fs-5 text-dark" id="symbol">Exchange amount:</div>
+						<input id="exchangeAmount" type="number" class="form-control border border border-dark" value="1" min="1" step="1">
+						<br>
+						<div class="fs-5 text-dark"><label for="currencySelect">Required currency: </label></div>
+						<select id="exchangeRate" class="form-select shadow-sm border border-dark"> </select>
+						<br>
+						<label for="exchangeResult" class="text-dark fs-5">Result</label>
+					  	<input id="exchangeResult" type="text" class="form-control border border-dark ml-3 mr-3" disabled>
+						<br>
+					</form>
+				</body>
+			</div>
+		</div>
+		</div>
+	</div>
+
+	<div id="newsModal" class="modal" data-bs-backdrop="false" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+		<div class="modal-content shadow">
+
+			<div class="modal-header bg-danger bg-gradient text-white">
+			<h5 class="modal-title">News</h5>
+			<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+		
+			<div class="modal-body">
+				<div id = "newsArticles">
+					<!-- content dynamically added in script.js -->
+				</div>
+			</div>
+
+			<div class="modal-footer">
+			<button type="button" class="btn btn-outline-success btn-sm" data-bs-dismiss="modal">Close</button>
+			</div>
+
+		</div>
+		</div>
+	</div>
+  
+	<div id="wikiModal" class="modal" data-bs-backdrop="false" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+		<div class="modal-content shadow">
+
+			<div class="modal-header text-info bg-dark bg-gradient text-white">
+			<h5 class="modal-title" id="wikiTitle">WikiData</h5>
+			<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+		
+			<div class="modal-body">
+				
+				<div id = "wikiArticles">
+				</div>
+			
+			</div>
+
+			<div class="modal-footer">
+			<button type="button" class="btn btn-outline-success btn-sm" data-bs-dismiss="modal">Close</button>
+			</div>
+
+		</div>
+		</div>
+	</div>  
+
+	<div id="imagesModal" class="modal fade" data-bs-backdrop="false" tabindex="-1">
+		<div class="modal-dialog modal-lg modal-dialog modal-dialog-scrollable">
+		<div class="modal-content shadow">
+
+			<div class="modal-header bg-success bg-gradient text-white">
+			<h5 id="imagesTitle" class="modal-title">Images</h5>
+			<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+		
+			<div class="modal-body">
+					
+			<!--##### https://www.w3schools.com/bootstrap/bootstrap_carousel.asp ####-->
+			
+			<div id="myCarousel" class="carousel slide" data-ride="carousel">
+				
+				<!-- Indicators/dots -->
+				<div class="carousel-indicators">
+					<button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active"></button>
+					<button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1"></button>
+					<button type="button" data-bs-target="#myCarousel" data-bs-slide-to="2"></button>
+				</div>
+
+				<!-- Wrapper for slides -->
+				<div id ="imageCarousel" class="carousel-inner">
+
+				<div class="carousel-item active" >
+					<img id="image1" class="d-block w-100" src="libs/images/imgPlaceholder.png" alt="image 1">	
+					<h4 class="text-right" id="image1footer">Image 1</h4>
+				</div>
+			
+				<div class="carousel-item">
+					<img id="image2" class="d-block w-100" class="img-fluid" src="libs/images/imgPlaceholder.png" alt="image 2">
+					<h4 class="text-right" id="image2footer">Image 2</h4>
+				</div>
+			
+				<div class="carousel-item">
+					<img id="image3" class="d-block w-100" class="img-fluid" src="libs/images/imgPlaceholder.png" alt="image 3">
+					<h4 class="text-right" id="image3footer">Image 3</h4>
+				</div>
+
+				<div class="carousel-item">
+					<img id="image4" class="d-block w-100" class="img-fluid" src="libs/images/imgPlaceholder.png" alt="image 4">
+					<h4 class="text-right" id="image4footer">Image 4</h4>
+				</div>
+			
+				<div class="carousel-item">
+					<img id="image5" class="d-block w-100" class="img-fluid" src="libs/images/imgPlaceholder.png" alt="image 5">
+					<h4 class="text-right" id="image5footer">Image 5</h4>
+				</div>
+				
+				</div>
+				<!-- wrapper end -->
+
+				<!-- Left and right controls/icons -->
+				<button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev">
+					<span class="carousel-control-prev-icon"></span>
+				</button>
+				<button class="carousel-control-next" type="button" data-bs-target="#myCarousel" data-bs-slide="next">
+					<span class="carousel-control-next-icon"></span>
+				</button>
+
+			</div> <!-- carousel end -->
+
+			
+			</div>
+
+			</div>
+		</div>
+		</div>
+	</div>
+
+	<!-- <div id="universitiesModal" class="modal" data-bs-backdrop="false" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+		<div class="modal-content shadow">
+
+			<div class="modal-header bg-success bg-gradient text-white">
+			<h5 class="modal-title">Universities</h5>
+			<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+		
+			<div class="modal-body">
+			<h1>Universities to be displayed</h1>
+			</div>
+
+			<div class="modal-footer">
+			<button type="button" class="btn btn-outline-success btn-sm" data-bs-dismiss="modal">Close</button>
+			</div>
+
+		</div>
+		</div>
+	</div> -->
+
+
+	<!-- leaflet javascript libraries -->
+	<script src="node_modules/leaflet/dist/leaflet.js"></script>
+	<script src='node_modules/leaflet-markercluster/dist/leaflet.markercluster.js'></script></script>
+	<script src='node_modules/leaflet-easybutton/src/easy-button.js'></script>
+	<script src="js/leaflet.extra-markers.min.js"></script>
+
+	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+	<script src='node_modules/toastify/src/toastify.js'></script>
+	<script src='bootstrap/bootstrap.min.js'></script>
+
+	<!-- my js file -->
+	<script type="application/javascript" src="libs/js/script.js"></script>
+
+</body>
+</html>
